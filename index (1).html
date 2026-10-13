@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Билеты ПДД</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#f3f1ea;--card:#fff;--ink:#1d2327;--mute:#6b7378;--line:#d9d6cb;--accent:#1f5fbf;--ok:#1e8a4c;--bad:#c93b2f;--okbg:#e2f3e8;--badbg:#fbe5e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1f2428;--ink:#eceae3;--mute:#98a1a7;--line:#343b40;--accent:#6aa3f5;--okbg:#17342367;--badbg:#3d1d1a99;--ok:#55c780;--bad:#f27b70}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--tg-theme-bg-color,var(--bg));color:var(--tg-theme-text-color,var(--ink));font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:8px 0 2px;letter-spacing:-.02em}
+.sub{color:var(--tg-theme-hint-color,var(--mute));margin:0 0 16px}
+.m,.o{display:block;width:100%;text-align:left;background:var(--tg-theme-secondary-bg-color,var(--card));border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px;color:inherit;font:inherit;cursor:pointer}
+.m b{display:block;font-size:17px}.m span,.tp{font-size:13px;color:var(--tg-theme-hint-color,var(--mute))}
+.o.ok{border-color:var(--ok);background:var(--okbg)}.o.bad{border-color:var(--bad);background:var(--badbg)}.o:disabled{cursor:default}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 14px}
+.bar i{display:block;height:100%;background:var(--tg-theme-button-color,var(--accent));transition:width .25s}
+.top{display:flex;justify-content:space-between;align-items:center;color:var(--tg-theme-hint-color,var(--mute));font-size:14px}
+.back{background:none;border:0;color:var(--tg-theme-link-color,var(--accent));font:inherit;cursor:pointer;padding:4px 0}
+.q{font-size:19px;font-weight:600;margin:2px 0 14px}
+.ex{margin:12px 0;padding:12px 14px;border-left:4px solid var(--tg-theme-button-color,var(--accent));background:var(--tg-theme-secondary-bg-color,var(--card));border-radius:0 10px 10px 0;font-size:15px}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;background:var(--tg-theme-button-color,var(--accent));color:var(--tg-theme-button-text-color,#fff);font:600 16px system-ui,sans-serif;cursor:pointer;margin-top:10px}
+.btn.alt{background:transparent;color:var(--tg-theme-link-color,var(--accent));border:1.5px solid var(--line)}
+.score{font-size:56px;font-weight:700;letter-spacing:-.03em;margin:6px 0}
+.err{padding:10px 0;border-top:1px solid var(--line);font-size:15px}.err small{color:var(--tg-theme-hint-color,var(--mute));display:block}
+.stat{display:flex;gap:8px;margin-bottom:16px}.stat div{flex:1;background:var(--tg-theme-secondary-bg-color,var(--card));border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--tg-theme-hint-color,var(--mute))}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* БАЗА ВОПРОСОВ. Формат: [тема, "вопрос", ["ВЕРНЫЙ ответ первым", "неверный", ...], "пояснение"].
+   Варианты перемешиваются при показе. Новые вопросы добавляйте только в конец списка. */
+const TP=["Общие положения","Скорость","Остановка и стоянка","Обгон и манёвры","Перекрёстки","Сигналы и свет","Знаки и разметка","Пешеходы и переезды"];
+const Q=[
+[0,"С какого возраста можно управлять легковым автомобилем категории B?",["С 18 лет","С 16 лет","С 17 лет","С 21 года"],"Для категории B минимальный возраст — 18 лет."],
+[0,"Кто обязан быть пристёгнут ремнём безопасности в легковом автомобиле?",["Водитель и все пассажиры","Только водитель","Водитель и пассажир спереди","Только вне населённого пункта"],"Пристёгиваются водитель и пассажиры, если автомобиль оборудован ремнями."],
+[0,"Какие документы водитель обязан иметь при себе?",["Водительское удостоверение, регистрационные документы на ТС и полис ОСАГО","Только водительское удостоверение","Паспорт и водительское удостоверение","Только свидетельство о регистрации"],"Это права, документы на транспортное средство и страховой полис ОСАГО."],
+[0,"На каком расстоянии вне населённого пункта выставляется знак аварийной остановки?",["Не менее 30 м","Не менее 15 м","Не менее 10 м","Не менее 50 м"],"В населённых пунктах — не менее 15 м, вне них — не менее 30 м."],
+[1,"Какая скорость разрешена в жилых зонах и во дворах?",["Не более 20 км/ч","Не более 10 км/ч","Не более 30 км/ч","Не более 40 км/ч"],"В жилых зонах и на дворовых территориях — не более 20 км/ч."],
+[1,"Какая максимальная скорость разрешена легковому автомобилю вне населённых пунктов на обычной дороге?",["90 км/ч","70 км/ч","110 км/ч","130 км/ч"],"Вне населённых пунктов легковым разрешено до 90 км/ч, если знаки не устанавливают иное."],
+[1,"Какая максимальная скорость разрешена легковому автомобилю на автомагистрали?",["110 км/ч","90 км/ч","100 км/ч","130 км/ч"],"На автомагистралях — до 110 км/ч, если знаки не ограничивают скорость."],
+[1,"Какая максимальная скорость разрешена в населённом пункте, если знаки не устанавливают иное?",["60 км/ч","50 км/ч","70 км/ч","80 км/ч"],"В населённых пунктах разрешено движение до 60 км/ч."],
+[2,"На каком расстоянии до ближайшего рельса запрещена остановка у железнодорожного переезда?",["Ближе 5 м","Ближе 10 м","Ближе 15 м","Ближе 20 м"],"Остановка и стоянка запрещены ближе 5 метров до ближайшего рельса."],
+[2,"Разрешена ли остановка на пешеходном переходе?",["Запрещена","Разрешена на несколько секунд","Разрешена с аварийной сигнализацией","Разрешена, если нет пешеходов"],"Остановка на пешеходных переходах и ближе 5 м перед ними запрещена."],
+[2,"Ближе какого расстояния до пересекаемой проезжей части запрещена остановка у перекрёстка?",["Ближе 5 м","Ближе 10 м","Ближе 15 м","Ближе 3 м"],"На перекрёстках и ближе 5 м от пересекаемой проезжей части останавливаться нельзя."],
+[3,"Где запрещён обгон?",["На пешеходных переходах","На прямом участке при хорошей видимости","На дороге с широкой обочиной","На многополосной дороге"],"Обгон запрещён на пешеходных переходах, перекрёстках и в других опасных местах."],
+[3,"Разрешён ли обгон в конце подъёма?",["Запрещён","Разрешён при хорошей видимости","Разрешён, если нет встречных","Разрешён на низкой скорости"],"Обгон запрещён в конце подъёма, на опасных поворотах и участках с ограниченной видимостью."],
+[3,"Где запрещён разворот?",["На пешеходных переходах","На перекрёстках","На дорогах вне города","На дорогах с двусторонним движением"],"Разворот запрещён на пешеходных переходах, в тоннелях, на мостах и ж/д переездах."],
+[3,"При одновременном перестроении попутных автомобилей кто уступает дорогу?",["Водитель слева","Водитель справа","Тот, кто едет быстрее","Тот, кто позже включил сигнал"],"Уступить должен водитель, находящийся слева, — преимущество у того, кто справа."],
+[4,"Как проехать нерегулируемый перекрёсток равнозначных дорог?",["Уступить дорогу транспорту справа","Уступить транспорту слева","Ехать первым, если быстрее","Уступить тому, кто едет прямо"],"Действует правило «помеха справа»."],
+[4,"Красный сигнал светофора, включена дополнительная секция с зелёной стрелкой направо. Что делать?",["Повернуть направо, уступив пешеходам и транспорту других направлений","Стоять до зелёного","Ехать, не уступая никому","Ехать только прямо"],"Стрелка разрешает движение, но уступить дорогу остальным участникам нужно."],
+[4,"Что означает поднятая вверх рука регулировщика?",["Движение запрещено всем","Движение разрешено прямо","Разрешён поворот налево","Нужно снизить скорость"],"Рука вверх запрещает движение всем транспортным средствам и пешеходам."],
+[4,"Кто имеет преимущество на кольце, если на въезде установлен знак «Уступите дорогу»?",["Водитель, уже движущийся по кольцу","Въезжающий на кольцо","Тот, кто едет быстрее","Тот, кто едет из города"],"Въезжающие уступают дорогу тем, кто движется по кольцу."],
+[5,"Что означает мигающий зелёный сигнал светофора?",["Движение разрешено, скоро включится запрещающий сигнал","Движение запрещено","Нужно остановиться","Можно ехать только прямо"],"Мигающий зелёный разрешает движение и предупреждает о смене сигнала."],
+[5,"Когда при движении обязательно включать ближний свет или ДХО?",["В любое время суток","Только в темноте","Только в тоннеле","Только в дождь"],"Ближний свет или дневные ходовые огни включают всегда при движении."],
+[5,"Когда в населённом пункте разрешён звуковой сигнал?",["Только для предотвращения ДТП","Чтобы привлечь внимание пешехода","Всегда","При обгоне"],"В населённых пунктах сигнал подают только для предотвращения ДТП."],
+[5,"В каком случае нужно включить аварийную сигнализацию?",["При вынужденной остановке в запрещённом месте","Чтобы обозначить стоянку у магазина","Чтобы поблагодарить водителя","При начале обгона"],"Аварийку включают при ДТП и вынужденной остановке там, где остановка запрещена."],
+[6,"Что означает сплошная линия разметки 1.1?",["Разделяет встречные потоки; пересекать запрещено","Обозначает край проезжей части","Разрешает обгон","Обозначает место стоянки"],"Линия 1.1 разделяет транспортные потоки противоположных направлений."],
+[6,"Что обозначает разметка «зебра»?",["Пешеходный переход","Зону парковки","Остановку общественного транспорта","Зону вынужденной остановки"],"Разметка 1.14.1 обозначает нерегулируемый пешеходный переход."],
+[6,"Как поступить перед знаком «Движение без остановки запрещено» (STOP)?",["Остановиться перед стоп-линией или пересекаемой проезжей частью","Снизить скорость и проехать, если нет помех","Остановиться, только если есть пешеходы","Проехать, подав звуковой сигнал"],"Остановка обязательна всегда, даже если помех нет."],
+[6,"Чем знак «Остановка запрещена» отличается от «Стоянка запрещена»?",["Остановка — две перекрещенные линии, стоянка — одна косая","Цветом фона","Формой знака","Ничем"],"У знака 3.27 две перекрещенные линии, у 3.28 — одна косая."],
+[6,"Что означает знак «Главная дорога» (белый ромб в жёлтой окантовке)?",["Преимущество на перекрёстках","Конец населённого пункта","Одностороннее движение","Уступить дорогу"],"Знак 2.1 даёт преимущество при проезде перекрёстков."],
+[7,"Что означает красный мигающий сигнал на железнодорожном переезде?",["Движение запрещено","Движение разрешено","Можно проехать после остановки","Нужно ускориться"],"Красный мигающий сигнал запрещает движение через переезд."],
+[7,"Пешеход вступил на нерегулируемый переход. Ваши действия?",["Уступить дорогу, при необходимости остановиться","Проехать, посигналив","Объехать сзади","Прибавить скорость"],"Водитель обязан уступить дорогу пешеходам, переходящим проезжую часть."],
+[7,"Где остановиться перед переездом при закрытом шлагбауме, если нет стоп-линии и знака 1.12?",["Не ближе 5 м до шлагбаума","Вплотную к шлагбауму","Не ближе 1 м до шлагбаума","Не ближе 15 м до шлагбаума"],"При отсутствии стоп-линии и знака — не ближе 5 м до шлагбаума."]
+];
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){try{tg.ready();tg.expand()}catch(e){}}
+const buzz=t=>{try{tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred(t)}catch(e){}};
+const $=s=>document.querySelector(s),app=$("#app");
+const sh=a=>{a=a.slice();for(let i=a.length;i>1;){const j=Math.random()*i--|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+let st={ans:{},wrong:[]};try{st=JSON.parse(localStorage.getItem("pdd2"))||st}catch(e){}
+const save=()=>{try{localStorage.setItem("pdd2",JSON.stringify(st))}catch(e){}};
+const all=Q.map((_,i)=>i),tot=i=>{const a=st.ans[i];return a?a.c+a.w:0};
+const smart=n=>sh(all).sort((a,b)=>tot(a)-tot(b)).slice(0,n);
+function rec(id,ok){const a=st.ans[id]||(st.ans[id]={c:0,w:0}),k=st.wrong.indexOf(id);ok?a.c++:a.w++;if(ok&&k>=0)st.wrong.splice(k,1);if(!ok&&k<0)st.wrong.push(id);save()}
+const acc=ids=>{let c=0,w=0;ids.forEach(i=>{const a=st.ans[i];if(a){c+=a.c;w+=a.w}});return[c,w]};
+let R=null;
+const stop=()=>{if(R)clearInterval(R.tm)};
+function home(){stop();const[c,w]=acc(all);
+ app.innerHTML=`<h1>Билеты ПДД</h1><p class="sub">Вопросов в базе: ${Q.length}. В каждом тесте они разные.</p>
+ <div class="stat"><div><b>${c+w}</b><span>решено</span></div><div><b>${c+w?Math.round(c/(c+w)*100):0}%</b><span>точность</span></div><div><b>${st.wrong.length}</b><span>на повтор</span></div></div>
+ <button class="m" id="a1"><b>Случайный тест</b><span>10 вопросов, подсказки и разбор сразу. Чаще попадаются новые вопросы</span></button>
+ <button class="m" id="a2"><b>Экзамен</b><span>20 вопросов, 20 минут, без подсказок. Допустимо до 2 ошибок</span></button>
+ <button class="m" id="a3"><b>По темам</b><span>Тренировка по одному разделу ПДД</span></button>
+ <button class="m" id="a4"><b>Работа над ошибками</b><span>${st.wrong.length?"Повторить "+st.wrong.length+" вопр., где вы ошибались":"Пока ошибок нет"}</span></button>
+ <button class="m" id="a5"><b>Марафон</b><span>Вся база подряд в случайном порядке</span></button>
+ <button class="back" id="a6">Сбросить статистику</button>`;
+ $("#a1").onclick=()=>start("Тест",()=>smart(10));
+ $("#a2").onclick=()=>start("Экзамен",()=>sh(all).slice(0,20),1);
+ $("#a3").onclick=topics;
+ $("#a4").onclick=()=>st.wrong.length?start("Ошибки",()=>sh(st.wrong)):0;
+ $("#a5").onclick=()=>start("Марафон",()=>sh(all));
+ $("#a6").onclick=()=>{st={ans:{},wrong:[]};save();home()};
+}
+function topics(){
+ app.innerHTML=`<div class="top"><button class="back" id="bk">‹ Меню</button></div><h1>Темы</h1>`+TP.map((t,k)=>{const ids=all.filter(i=>Q[i][0]===k),[c,w]=acc(ids);
+ return`<button class="m" data-k="${k}"><b>${t}</b><span>${ids.length} вопр.${c+w?" · точность "+Math.round(c/(c+w)*100)+"%":""}</span></button>`}).join("");
+ $("#bk").onclick=home;
+ app.querySelectorAll(".m").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;start(TP[k],()=>sh(all.filter(i=>Q[i][0]===k)))});
+}
+function start(title,gen,exam){stop();const ids=gen();R={title,gen,ids,exam,i:0,log:[],pick:null,o:null,hid:[],end:Date.now()+12e5};
+ if(exam)R.tm=setInterval(tick,1000);show()}
+function tick(){const s=Math.max(0,Math.round((R.end-Date.now())/1000)),e=$("#tm");if(e)e.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");if(!s)finish(1)}
+function show(){const id=R.ids[R.i],q=Q[id],r=q[2][0],d=R.pick!==null;R.o=R.o||sh(q[2]);
+ app.innerHTML=`<div class="top"><button class="back" id="bk">‹ Меню</button><span>${R.exam?'<b id="tm"></b> · ':""}${R.i+1} из ${R.ids.length}</span></div><div class="bar"><i style="width:${R.i/R.ids.length*100}%"></i></div><span class="tp">${TP[q[0]]}</span><p class="q">${q[1]}</p>`+
+ R.o.map((x,j)=>R.hid.includes(x)?"":`<button class="o ${d?(x===r?"ok":x===R.pick?"bad":""):""}" data-j="${j}" ${d?"disabled":""}>${x}</button>`).join("")+
+ (d?`<div class="ex"><b>${R.pick===r?"Верно.":"Неверно."}</b> ${q[3]}</div><button class="btn" id="nx">${R.i+1<R.ids.length?"Дальше":"Результат"}</button>`:(R.exam||R.hid.length?"":`<button class="btn alt" id="ht">Подсказка 50/50</button>`));
+ $("#bk").onclick=home;if(R.exam)tick();
+ app.querySelectorAll(".o").forEach(b=>b.onclick=()=>{const x=R.o[+b.dataset.j],ok=x===r;R.log.push({id,ok,pick:x});rec(id,ok);buzz(ok?"success":"error");R.pick=x;R.exam?next():show()});
+ const h=$("#ht");if(h)h.onclick=()=>{R.hid=sh(R.o.filter(x=>x!==r)).slice(0,2);show()};
+ const n=$("#nx");if(n)n.onclick=next;
+}
+function next(){R.i++;R.pick=null;R.o=null;R.hid=[];R.i<R.ids.length?show():finish()}
+function finish(to){stop();const bad=R.log.filter(x=>!x.ok),n=R.ids.length,ok=R.log.length-bad.length,pass=R.exam&&R.log.length===n&&bad.length<=2;
+ app.innerHTML=`<div class="top"><button class="back" id="bk">‹ Меню</button></div><div class="score">${ok}/${n}</div><p class="sub">${R.exam?(pass?"Экзамен сдан":"Экзамен не сдан")+(to?", время вышло":"")+" (допустимо до 2 ошибок)":bad.length?"Ошибок: "+bad.length+". Разберите их ниже.":"Без ошибок!"}</p>`+
+ bad.map(x=>{const q=Q[x.id];return`<div class="err"><b>${q[1]}</b><small>Ваш ответ: ${x.pick}</small>Верно: ${q[2][0]}<small>${q[3]}</small></div>`}).join("")+
+ (bad.length?'<button class="btn" id="fx">Повторить ошибки</button>':"")+'<button class="btn alt" id="again">Ещё раз</button>';
+ $("#bk").onclick=home;const g=R.gen,t=R.title,e=R.exam,ids=bad.map(x=>x.id);
+ $("#again").onclick=()=>start(t,g,e);const f=$("#fx");if(f)f.onclick=()=>start("Ошибки",()=>sh(ids));
+}
+home();
+</script>
+</body>
+</html>
